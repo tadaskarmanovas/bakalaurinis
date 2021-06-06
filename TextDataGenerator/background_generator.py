@@ -1,0 +1,72 @@
+import cv2
+import math
+import os
+import random as rnd
+import numpy as np
+
+from PIL import Image, ImageDraw, ImageFilter
+
+
+def gaussian_noise(height, width):
+    image = np.ones((height, width)) * 255
+
+    cv2.randn(image, 235, 10)
+
+    return Image.fromarray(image).convert("RGBA")
+
+
+def plain_white(height, width):
+    return Image.new("L", (width, height), 255).convert("RGBA")
+
+
+def quasicrystal(height, width):
+    image = Image.new("L", (width, height))
+    pixels = image.load()
+
+    frequency = rnd.random() * 30 + 20  
+    phase = rnd.random() * 2 * math.pi  
+    rotation_count = rnd.randint(10, 20)  
+
+    for kw in range(width):
+        y = float(kw) / (width - 1) * 4 * math.pi - 2 * math.pi
+        for kh in range(height):
+            x = float(kh) / (height - 1) * 4 * math.pi - 2 * math.pi
+            z = 0.0
+            for i in range(rotation_count):
+                r = math.hypot(x, y)
+                a = math.atan2(y, x) + i * math.pi * 2.0 / rotation_count
+                z += math.cos(r * math.sin(a) * frequency + phase)
+            c = int(255 - round(255 * z / rotation_count))
+            pixels[kw, kh] = c 
+    return image.convert("RGBA")
+
+
+def image(height, width, image_dir):
+    images = os.listdir(image_dir)
+
+    if len(images) > 0:
+        pic = Image.open(
+            os.path.join(image_dir, images[rnd.randint(0, len(images) - 1)])
+        )
+
+        if pic.size[0] < width:
+            pic = pic.resize(
+                [width, int(pic.size[1] * (width / pic.size[0]))], Image.ANTIALIAS
+            )
+        if pic.size[1] < height:
+            pic = pic.resize(
+                [int(pic.size[0] * (height / pic.size[1])), height], Image.ANTIALIAS
+            )
+
+        if pic.size[0] == width:
+            x = 0
+        else:
+            x = rnd.randint(0, pic.size[0] - width)
+        if pic.size[1] == height:
+            y = 0
+        else:
+            y = rnd.randint(0, pic.size[1] - height)
+
+        return pic.crop((x, y, x + width, y + height))
+    else:
+        raise Exception("No images where found in the images folder!")
